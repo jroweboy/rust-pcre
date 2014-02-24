@@ -7,7 +7,11 @@
 // except according to those terms.
 
 #[crate_id = "pcre#0.1"];
-#[crate_type = "lib"];
+
+#[comment = "Rust bindings for pcre"];
+#[license = "MIT"];
+#[crate_type = "dylib"];
+#[crate_type = "rlib"];
 
 extern crate collections;
 
