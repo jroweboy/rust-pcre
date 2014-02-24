@@ -102,6 +102,7 @@ pub struct CompilationError {
 }
 
 /// Wrapper for libpcre's `pcre` object (representing a compiled regular expression).
+#[deriving(Clone)]
 pub struct Pcre {
 
     priv code: *detail::pcre,
