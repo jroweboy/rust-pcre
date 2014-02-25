@@ -24,6 +24,7 @@ use std::option::{Option};
 use std::ptr;
 use std::result::{Result};
 use std::vec;
+use std::fmt;
 
 mod detail;
 
@@ -102,7 +103,6 @@ pub struct CompilationError {
 }
 
 /// Wrapper for libpcre's `pcre` object (representing a compiled regular expression).
-#[deriving(Clone)]
 pub struct Pcre {
 
     priv code: *detail::pcre,
@@ -306,11 +306,11 @@ impl CompilationError {
     }
 }
 
-impl ToStr for CompilationError {
-    fn to_str(&self) -> ~str {
+impl fmt::Show for CompilationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.opt_err {
-            None => format!("compilation failed at offset {:u}", self.erroffset as uint),
-            Some(ref s) => format!("compilation failed at offset {:u}: {:s}", self.erroffset as uint, s.as_slice())
+            None => write!(f.buf, "compilation failed at offset {:u}", self.erroffset as uint),
+            Some(ref s) => write!(f.buf, "compilation failed at offset {:u}: {:s}", self.erroffset as uint, s.as_slice())
         }
     }
 }

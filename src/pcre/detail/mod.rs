@@ -6,6 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#[allow(non_camel_case_types)];
 use collections::enum_set::{EnumSet};
 use std::c_str::{CString};
 use std::libc::{c_int, c_char, c_void, c_uchar, c_ulong, };
@@ -20,7 +21,6 @@ pub type exec_options = c_int;
 pub type fullinfo_field = c_int;
 pub struct pcre;
 pub type pcre_error = c_int;
-//pub struct pcre_extra;
 
 pub struct pcre_extra {
     flags: c_ulong,
