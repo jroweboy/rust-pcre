@@ -2,7 +2,7 @@ PCRE_LIBDIR ?= $(shell pcre-config --prefix)/lib
 
 PCRE_LIBVERSION_REQUIRED ?= 830
 # see stackoverflow http://stackoverflow.com/q/5188267/745719
-PCRE_LIBVERSION_GTE ?= $(shell expr `pcre-config --version | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= $(PCRE_LIBVERSION_REQUIRED))
+PCRE_LIBVERSION_GTE ?= $(shell expr `pcre-config --version | sed -e 's/\.\([0-9][0-9]\)/\1/g'` \>= $(PCRE_LIBVERSION_REQUIRED))
 
 LINKFLAGS ?= -L lib -L "$(PCRE_LIBDIR)"
 RUSTFLAGS ?= -O
