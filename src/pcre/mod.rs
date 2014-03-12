@@ -125,7 +125,8 @@ pub struct Match<'a> {
 
     priv string_count_: c_int,
 
-    priv mark : Option<~str>
+    // TODO make this a private field and implement a get for it?
+    mark : Option<~str>
 }
 
 /// Iterator type for iterating matches within a subject string.
