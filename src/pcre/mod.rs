@@ -111,7 +111,7 @@ pub struct Pcre {
 
     priv capture_count_: c_int,
 
-    /// a spot to place any matched marks
+    // a spot to place any matched marks, but is not thread safe? 
     priv mark : *mut c_uchar
 
 }
@@ -123,8 +123,9 @@ pub struct Match<'a> {
 
     priv partial_ovector: ~[c_int],
 
-    priv string_count_: c_int
+    priv string_count_: c_int,
 
+    priv mark : Option<~str>
 }
 
 /// Iterator type for iterating matches within a subject string.
@@ -391,7 +392,7 @@ impl Pcre {
     /// If a regular expression will be used often, it might be worth studying it to possibly
     /// speed up matching. See the [study()](#fn.study) method.
     #[inline]
-    pub fn exec<'a>(&self, subject: &'a str) -> Option<Match<'a>> {
+    pub fn exec<'a>(&mut self, subject: &'a str) -> Option<Match<'a>> {
         self.exec_from(subject, 0)
     }
 
@@ -412,7 +413,7 @@ impl Pcre {
     /// If a regular expression will be used often, it might be worth studying it to possibly
     /// speed up matching. See the [study()](#fn.study) method.
     #[inline]
-    pub fn exec_from<'a>(&self, subject: &'a str, startoffset: uint) -> Option<Match<'a>> {
+    pub fn exec_from<'a>(&mut self, subject: &'a str, startoffset: uint) -> Option<Match<'a>> {
         let no_options: EnumSet<ExecOption> = EnumSet::empty();
         self.exec_from_with_options(subject, startoffset, &no_options)
     }
@@ -437,18 +438,29 @@ impl Pcre {
     /// If a regular expression will be used often, it might be worth studying it to possibly
     /// speed up matching. See the [study()](#fn.study) method.
     #[inline]
-    pub fn exec_from_with_options<'a>(&self, subject: &'a str, startoffset: uint, options: &EnumSet<ExecOption>) -> Option<Match<'a>> {
+    pub fn exec_from_with_options<'a>(&mut self, subject: &'a str, startoffset: uint, options: &EnumSet<ExecOption>) -> Option<Match<'a>> {
         let ovecsize = (self.capture_count_ + 1) * 3;
         let mut ovector: ~[c_int] = vec::from_elem(ovecsize as uint, 0 as c_int);
 
         unsafe {
             subject.with_c_str_unchecked(|subject_c_str| -> Option<Match<'a>> {
+                // Update the mark location if it has been set in the ExtraOptions 
+                // in case this Pcre has been moved
+                if self.extra.is_not_null() && (*self.extra).mark.is_not_null() {
+                    (*self.extra).mark = &mut self.mark as *mut *mut u8;
+                }
                 let rc = detail::pcre_exec(self.code, self.extra as *detail::pcre_extra, subject_c_str, subject.len() as c_int, startoffset as c_int, options, ovector.as_mut_ptr(), ovecsize as c_int);
                 if rc >= 0 {
+                    let mark = if self.mark.is_not_null() {
+                        Some(std::str::raw::from_c_str(self.mark as *i8))
+                    } else {
+                        None
+                    };
                     Some(Match {
                         subject: subject,
                         partial_ovector: ovector.slice_to(((self.capture_count_ + 1) * 2) as uint).to_owned(),
-                        string_count_: rc
+                        string_count_: rc,
+                        mark: mark
                     })
                 } else {
                     None
@@ -576,6 +588,8 @@ impl Pcre {
     }
 
     /// Returns the mark from pcre if it was set in the extra options
+    /// TODO: I have changed it so the Match returns a mark on it instead 
+    /// since it makes much more sense to have it there. Update the tests to use that.
     /// 
     /// # Return value
     /// `Some(str)` if pcre returned a value for the mark
@@ -699,15 +713,27 @@ impl<'a> Iterator<Match<'a>> for MatchIterator<'a> {
             // error: closure requires unique access to `self` but `self.subject_cstring` is already borrowed
             let subject_cstring_copy = self.subject_cstring.with_ref(|subject_c_str| CString::new(subject_c_str, false));
             subject_cstring_copy.with_ref(|subject_c_str| -> Option<Match<'a>> {
+                // if self.extra.is_not_null() && (*self.extra).mark.is_not_null() {
+                //     (*self.extra).mark = &mut self.mark as *mut *mut u8;
+                // }
                 let rc = detail::pcre_exec(self.code, self.extra, subject_c_str, self.subject.len() as c_int, self.offset, &self.options, self.ovector.as_mut_ptr(), self.ovector.len() as c_int);
                 if rc >= 0 {
                     // Update the iterator state.
                     self.offset = self.ovector[1];
 
+                    // TODO add Mark to this as well
+
+                    // let mark = if self.mark.is_not_null() {
+                    //     Some(std::str::raw::from_c_str(self.mark as *i8))
+                    // } else {
+                    //     None
+                    // };
+
                     Some(Match {
                         subject: self.subject,
                         partial_ovector: self.ovector.slice_to(((self.capture_count + 1) * 2) as uint).to_owned(),
-                        string_count_: rc
+                        string_count_: rc,
+                        mark: None
                     })
                 } else {
                     None
